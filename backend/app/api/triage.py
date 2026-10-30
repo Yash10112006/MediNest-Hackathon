@@ -1,24 +1,50 @@
 # backend/app/api/triage.py
-from fastapi import APIRouter, HTTPException, Depends
+import logging
+from fastapi import APIRouter, HTTPException, Depends, status
 from typing import Optional, List, Dict
 from datetime import datetime
 from ..models.schemas import TriageRequest, TriageResponse
 from ..services.triage import TriageEngine
 from ..core.database import supabase
+from ..core.security import get_current_user, CurrentUser
 
+logger = logging.getLogger("medinest.triage")
 router = APIRouter(prefix="/api/triage", tags=["Triage"])
 triage_engine = TriageEngine()
 
+
 @router.post("/analyze", response_model=TriageResponse)
-async def analyze_symptoms(request: TriageRequest):
+async def analyze_symptoms(
+    request: TriageRequest,
+    current_user: CurrentUser = Depends(get_current_user)
+):
     """
-    Analyze symptoms and return triage result
+    Analyze symptoms and return triage result.
+    Enforces ownership: Patients can only triage for themselves.
+    Doctors and ASHA workers can triage patients in their care.
     """
+    # Enforce patient data ownership and physician assignment
+    if current_user.role == "patient" and request.patient_id:
+        if request.patient_id != current_user.id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: You cannot run clinical triage under another patient's identifier."
+            )
+    elif current_user.role == "doctor" and request.patient_id:
+        from .patients import check_doctor_patient_relationship
+        if not check_doctor_patient_relationship(current_user.id, request.patient_id):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access denied: No active clinical appointment or referral relationship with this patient."
+            )
+
+    target_patient_id = request.patient_id or (current_user.id if current_user.role == "patient" else None)
+
     # Get patient context if patient_id provided
     patient_context = None
-    if request.patient_id:
+    if target_patient_id and supabase:
         try:
-            response = supabase.table("patients").select("*").eq("id", request.patient_id).execute()
+            response = supabase.table("patients").select("*").eq("id", target_patient_id).execute()
             if response.data:
                 patient_data = response.data[0]
                 patient_context = {
@@ -26,21 +52,19 @@ async def analyze_symptoms(request: TriageRequest):
                     "conditions": patient_data.get("existing_conditions", [])
                 }
         except Exception as e:
-            # Continue without patient context
-            pass
-    
+            logger.warning(f"Failed to fetch patient context for triage: {e}")
+
     # Analyze symptoms
     result = triage_engine.analyze(request.symptoms, patient_context)
-    
-    
+
     # Get recommendations
     recommendations = triage_engine.get_recommendations(result["level"])
-    
+
     # Get nearby facilities for Yellow/Red/Emergency
     facilities = []
     if result["level"] in ["yellow", "red", "emergency"]:
         facilities = await get_nearby_facilities()
-    
+
     return TriageResponse(
         level=result["level"],
         label=result["label"],
@@ -53,9 +77,13 @@ async def analyze_symptoms(request: TriageRequest):
         timestamp=result["timestamp"]
     )
 
+
 @router.get("/levels")
 async def get_triage_levels():
-    """Get all triage levels with descriptions"""
+    """
+    Get all triage levels with descriptions.
+    Public informational endpoint for health awareness.
+    """
     return {
         "levels": [
             {
@@ -85,9 +113,9 @@ async def get_triage_levels():
         ]
     }
 
+
 async def get_nearby_facilities():
     """Get nearby healthcare facilities"""
-    # In production, use Google Maps API or ABDM HFR
     return [
         {
             "name": "PHC Khargone",

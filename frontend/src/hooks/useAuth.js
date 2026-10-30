@@ -1,49 +1,47 @@
 // frontend/src/hooks/useAuth.js
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 
 const API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-export function useAuth() {
-  const [user, setUser] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [role, setRole] = useState(null)
+function getInitialUser() {
+  const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null
+  const userData = typeof window !== 'undefined' ? localStorage.getItem('user') : null
 
-  useEffect(() => {
-    // Check if user is logged in
-    const token = localStorage.getItem('access_token')
-    const userData = localStorage.getItem('user')
+  if (token && userData) {
+    try {
+      const parsed = JSON.parse(userData)
+      const userId = parsed.user_id || parsed.id || parsed.sub || ''
 
-    if (token && userData) {
-      try {
-        const parsed = JSON.parse(userData)
-
-        // Normalize user's real name
-        const normalizedUser = {
-          ...parsed,
-          name:
-            parsed.name ||
-            parsed.full_name ||
-            parsed.fullName ||
-            parsed.username ||
-            parsed.user_metadata?.name ||
-            parsed.user_metadata?.full_name ||
-            ''
-        }
-
-        setUser(normalizedUser)
-        setRole(normalizedUser.role)
-      } catch (e) {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('user')
+      return {
+        ...parsed,
+        id: userId,
+        user_id: userId,
+        name:
+          parsed.name ||
+          parsed.full_name ||
+          parsed.fullName ||
+          parsed.username ||
+          parsed.user_metadata?.name ||
+          parsed.user_metadata?.full_name ||
+          ''
       }
+    } catch {
+      localStorage.removeItem('access_token')
+      localStorage.removeItem('user')
     }
+  }
+  return null
+}
 
-    setLoading(false)
-  }, [])
+export function useAuth() {
+  const [user, setUser] = useState(getInitialUser)
+  const [role, setRole] = useState(() => (user ? user.role : null))
+  const [loading, setLoading] = useState(false)
 
   const login = async (email, password) => {
+    setLoading(true)
     try {
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
@@ -62,9 +60,6 @@ export function useAuth() {
         throw new Error(data.detail || 'Login failed')
       }
 
-      /*
-       * Get the real name returned by the backend.
-       */
       const userName =
         data.name ||
         data.full_name ||
@@ -74,8 +69,12 @@ export function useAuth() {
         data.user_metadata?.full_name ||
         ''
 
+      const userId = data.user_id || data.id || data.sub || ''
+
       const userData = {
         ...data,
+        id: userId,
+        user_id: userId,
         name: userName
       }
 
@@ -101,6 +100,8 @@ export function useAuth() {
         data: null,
         error
       }
+    } finally {
+      setLoading(false)
     }
   }
 

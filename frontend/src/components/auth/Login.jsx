@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  HeartPulse,
   Mail,
   Lock,
   Eye,
@@ -29,64 +28,6 @@ export default function Login() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
 
-  // =========================================================
-  // ROLE NORMALIZATION
-  // =========================================================
-
-  const normalizeRole = (userRole) => {
-    const role = (userRole || '')
-      .toString()
-      .toLowerCase()
-      .trim()
-
-    if (role === 'patient' || role === 'user') {
-      return 'patient'
-    }
-
-    if (role.includes('doctor')) {
-      return 'doctor'
-    }
-
-    if (role.includes('asha')) {
-      return 'asha'
-    }
-
-    if (
-      role === 'hospital_admin' ||
-      role === 'hospital admin' ||
-      role === 'hospital' ||
-      role === 'admin'
-    ) {
-      return 'hospital_admin'
-    }
-
-    return null
-  }
-
-  // =========================================================
-  // DASHBOARD ROUTE BY ROLE
-  // =========================================================
-
-  const getDashboardRoute = (role) => {
-    switch (role) {
-      case 'patient':
-        return '/patient'
-
-      case 'doctor':
-        return '/dashboard'
-
-      case 'asha':
-        return '/asha'
-
-      case 'hospital_admin':
-        return '/hospital'
-
-      default:
-        return '/'
-    }
-  }
-
-  // =========================================================
   // LOGIN
   // =========================================================
 
@@ -199,6 +140,13 @@ export default function Login() {
       // SAVE AUTHENTICATION DATA
       // =========================================================
 
+      const userId = data.user_id || data.id || data.sub || ''
+      const storedUserData = {
+        ...data,
+        id: userId,
+        user_id: userId
+      }
+
       localStorage.setItem(
         'access_token',
         data.access_token
@@ -206,7 +154,7 @@ export default function Login() {
 
       localStorage.setItem(
         'user',
-        JSON.stringify(data)
+        JSON.stringify(storedUserData)
       )
 
       // =========================================================

@@ -1,9 +1,12 @@
 # backend/app/api/schemes.py
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, HTTPException, status
 from typing import List
 from ..models.schemas import SchemeEligibilityRequest, SchemeEligibilityResponse
+from ..core.config import settings
 from ..core.database import supabase
 
+logger = logging.getLogger("medinest.schemes")
 router = APIRouter(prefix="/api/schemes", tags=["Schemes"])
 
 MOCK_SCHEMES = [
@@ -53,24 +56,35 @@ MOCK_SCHEMES = [
     }
 ]
 
+
 @router.get("/")
 async def get_all_schemes():
-    """Get all government health schemes"""
-    try:
-        if supabase:
-            try:
-                res = supabase.table("schemes").select("*").execute()
-                if res.data:
-                    return res.data
-            except Exception:
-                pass
-        return MOCK_SCHEMES
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    """
+    Get all government health schemes.
+    Public informational endpoint for rural healthcare welfare.
+    """
+    if supabase:
+        try:
+            res = supabase.table("schemes").select("*").execute()
+            if res.data:
+                return res.data
+        except Exception as e:
+            logger.error(f"Database error querying schemes: {type(e).__name__}")
+            if settings.ENVIRONMENT.lower() == "production":
+                raise HTTPException(
+                    status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                    detail="Failed to retrieve welfare schemes from database."
+                )
+            logger.warning("Database unavailable; using development demo schemes.")
+    return MOCK_SCHEMES
+
 
 @router.post("/check-eligibility", response_model=List[SchemeEligibilityResponse])
 async def check_eligibility(req: SchemeEligibilityRequest):
-    """Check patient eligibility across government schemes"""
+    """
+    Check citizen eligibility across government schemes.
+    Public informational utility for rural patients and ASHA field workers.
+    """
     results = []
     for scheme in MOCK_SCHEMES:
         is_eligible = True

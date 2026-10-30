@@ -48,6 +48,8 @@ export default function PatientAppointments() {
   const { user } = useAuth()
   const { t } = useLanguage()
 
+  const userRole = (user?.role || '').toLowerCase()
+
   const patient = useMemo(() => {
     if (!user) return null
     return getPatientForUser(user)
@@ -56,6 +58,9 @@ export default function PatientAppointments() {
   const patientId = patient?.id || user?.id
 
   const appointments = useMemo(() => {
+    if (userRole.includes('doctor') || userRole.includes('admin') || userRole.includes('hospital')) {
+      return state.appointments || []
+    }
     if (!patientId) return []
     return (state.appointments || []).filter(
       a =>
@@ -63,7 +68,7 @@ export default function PatientAppointments() {
         a.patientId === user?.id ||
         (user?.email && a.patientEmail === user.email)
     )
-  }, [state.appointments, patientId, user])
+  }, [state.appointments, patientId, user, userRole])
 
   const upcoming = appointments.filter(a => a.status === 'Confirmed' || a.status === 'Pending')
   const past = appointments.filter(a => a.status === 'Completed' || a.status === 'Cancelled')

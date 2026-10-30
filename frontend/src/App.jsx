@@ -40,7 +40,6 @@ import AITriage from './components/triage/AITriage'
 import PatientRecords from './components/patients/PatientRecords'
 import Analytics from './components/analytics/AnalyticsDashboard'
 import Schemes from './components/schemes/Schemes'
-import Profile from './components/profile/Profile'
 
 // ================= COMMON =================
 
@@ -294,6 +293,16 @@ function AppContent() {
                 element={<ASHADashboard />}
               />
 
+              <Route
+                path="/asha/visits"
+                element={<ASHADashboard />}
+              />
+
+              <Route
+                path="/asha/alerts"
+                element={<ASHADashboard />}
+              />
+
             </Route>
 
 
@@ -322,6 +331,26 @@ function AppContent() {
               <Route
                 path="/doctor/patients"
                 element={<PatientRecords />}
+              />
+
+              <Route
+                path="/doctor/triage"
+                element={<AITriage />}
+              />
+
+              <Route
+                path="/doctor/appointments"
+                element={<PatientAppointments />}
+              />
+
+              <Route
+                path="/doctor/referrals"
+                element={<PatientReferrals />}
+              />
+
+              <Route
+                path="/doctor/analytics"
+                element={<Analytics />}
               />
 
             </Route>
@@ -357,6 +386,16 @@ function AppContent() {
               <Route
                 path="/hospital/inventory"
                 element={<HospitalAdminDashboard />}
+              />
+
+              <Route
+                path="/hospital/beds"
+                element={<HospitalAdminDashboard />}
+              />
+
+              <Route
+                path="/hospital/referrals"
+                element={<PatientReferrals />}
               />
 
             </Route>

@@ -1,13 +1,21 @@
 # backend/app/api/analytics.py
-from fastapi import APIRouter, HTTPException
+import logging
+from fastapi import APIRouter, HTTPException, Depends
 from typing import List
-from ..models.schemas import KPIResponse, AlertItem, ConsultationMetric, RegionData, TriagePerformance
+from ..models.schemas import (
+    KPIResponse, AlertItem, ConsultationMetric, RegionData, TriagePerformance
+)
+from ..core.security import require_roles, CurrentUser
 
+logger = logging.getLogger("medinest.analytics")
 router = APIRouter(prefix="/api/analytics", tags=["Analytics"])
 
+
 @router.get("/kpis", response_model=KPIResponse)
-async def get_kpis():
-    """Get system-wide KPIs"""
+async def get_kpis(
+    current_user: CurrentUser = Depends(require_roles("hospital_admin", "doctor", "asha"))
+):
+    """Get system-wide KPIs. Restricted to healthcare staff and hospital admins."""
     return KPIResponse(
         total_consultations=14250,
         ai_triage_accuracy=94.2,
@@ -17,9 +25,12 @@ async def get_kpis():
         referral_completion_rate=89.1
     )
 
+
 @router.get("/alerts", response_model=List[AlertItem])
-async def get_alerts():
-    """Get high-risk and epidemic health alerts"""
+async def get_alerts(
+    current_user: CurrentUser = Depends(require_roles("hospital_admin", "doctor", "asha"))
+):
+    """Get high-risk and epidemic health alerts. Restricted to staff."""
     return [
         AlertItem(
             id="alt-01",
@@ -45,8 +56,11 @@ async def get_alerts():
         )
     ]
 
+
 @router.get("/consultations", response_model=List[ConsultationMetric])
-async def get_consultations():
+async def get_consultations(
+    current_user: CurrentUser = Depends(require_roles("hospital_admin", "doctor", "asha"))
+):
     """Get monthly consultation metrics"""
     return [
         ConsultationMetric(month="Jan", consultations=980, triage=1120, referrals=140),
@@ -57,8 +71,11 @@ async def get_consultations():
         ConsultationMetric(month="Jun", consultations=1420, triage=1600, referrals=230)
     ]
 
+
 @router.get("/regions", response_model=List[RegionData])
-async def get_regions():
+async def get_regions(
+    current_user: CurrentUser = Depends(require_roles("hospital_admin", "doctor", "asha"))
+):
     """Get health status breakdown by region"""
     return [
         RegionData(name="Khargone PHC", type="Primary Center", consultations=3400, status="Optimal"),
@@ -66,8 +83,11 @@ async def get_regions():
         RegionData(name="Khandwa District", type="District Hospital", consultations=7800, status="Critical Load")
     ]
 
+
 @router.get("/triage-performance", response_model=TriagePerformance)
-async def get_triage_performance():
+async def get_triage_performance(
+    current_user: CurrentUser = Depends(require_roles("hospital_admin", "doctor", "asha"))
+):
     """Get AI triage model accuracy & concordance metrics"""
     return TriagePerformance(
         accuracy="94.2%",

@@ -4,7 +4,6 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
-  HeartPulse,
   Mail,
   Lock,
   User,
@@ -92,9 +91,11 @@ export default function Register() {
         )
       }
 
-      // Save token and user info
+      // Save token and user info with normalized ID
+      const userId = data.user_id || data.id || data.sub || ''
+      const storedUserData = { ...data, id: userId, user_id: userId }
       localStorage.setItem('access_token', data.access_token)
-      localStorage.setItem('user', JSON.stringify(data))
+      localStorage.setItem('user', JSON.stringify(storedUserData))
 
       // Redirect to login
       navigate('/login')

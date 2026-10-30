@@ -9,8 +9,7 @@ import {
   CheckCircle,
   Clock,
   User,
-  MapPin,
-  FileText
+  MapPin
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { useMockState, getPatientForUser } from '../../services/mockState'
@@ -42,6 +41,8 @@ export default function PatientReferrals() {
   const { state } = useMockState()
   const { user } = useAuth()
 
+  const userRole = (user?.role || '').toLowerCase()
+
   const patient = useMemo(() => {
     if (!user) return null
     return getPatientForUser(user)
@@ -50,6 +51,9 @@ export default function PatientReferrals() {
   const patientId = patient?.id || user?.id
 
   const referrals = useMemo(() => {
+    if (userRole.includes('doctor') || userRole.includes('admin') || userRole.includes('hospital') || userRole.includes('asha')) {
+      return state.referrals || []
+    }
     if (!patientId) return []
     return (state.referrals || []).filter(
       r =>
@@ -57,7 +61,7 @@ export default function PatientReferrals() {
         r.patientId === user?.id ||
         (user?.email && r.patientEmail === user.email)
     )
-  }, [state.referrals, patientId, user])
+  }, [state.referrals, patientId, user, userRole])
 
   const containerVariants = {
     hidden: { opacity: 0 },

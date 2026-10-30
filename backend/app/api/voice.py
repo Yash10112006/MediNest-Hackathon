@@ -1,13 +1,18 @@
 # backend/app/api/voice.py
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+import logging
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, Depends
 from typing import Optional
+from ..core.security import get_current_user, CurrentUser
 
+logger = logging.getLogger("medinest.voice")
 router = APIRouter(prefix="/api/voice", tags=["Voice AI (Bhashini)"])
+
 
 @router.post("/stt")
 async def speech_to_text(
     language: str = Form("hi"),
-    audio: Optional[UploadFile] = File(None)
+    audio: Optional[UploadFile] = File(None),
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """
     Speech-to-Text conversion via Bhashini API integration.
@@ -27,10 +32,12 @@ async def speech_to_text(
         "confidence": 0.96
     }
 
+
 @router.post("/tts")
 async def text_to_speech(
     text: str = Form(...),
-    language: str = Form("hi")
+    language: str = Form("hi"),
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Text-to-Speech synthesis"""
     return {
@@ -39,11 +46,13 @@ async def text_to_speech(
         "audio_url": f"https://api.medinest.gov.in/audio/sample_{language}.mp3"
     }
 
+
 @router.post("/translate")
 async def translate_text(
     text: str = Form(...),
     source_lang: str = Form("hi"),
-    target_lang: str = Form("en")
+    target_lang: str = Form("en"),
+    current_user: CurrentUser = Depends(get_current_user)
 ):
     """Neural Machine Translation (NMT) between Indian languages"""
     return {
