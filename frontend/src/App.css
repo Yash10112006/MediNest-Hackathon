@@ -1,0 +1,31 @@
+/* MediNest application styles */
+
+#root {
+  min-height: 100vh;
+}
+
+/* Smooth transitions */
+* {
+  box-sizing: border-box;
+}
+
+/* Remove default button styling issues */
+button {
+  font-family: inherit;
+}
+
+/* Better focus visibility */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
+/* Selection */
+::selection {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
